@@ -104,7 +104,7 @@ ${answer}`;
       qSource,
       answer,
       score,
-      feedback: feedback as import("@prisma/client").Prisma.InputJsonValue,
+      feedback: feedback as never,
     },
   });
 
