@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WATool {
+  AUTOSYS
+  CONTROL_M
+  AIRFLOW
+  DSERIES
+  DOLLAR_UNIVERSE
+}
+
+enum Level {
+  L1
+  L2
+  L3
+}
+
+enum JobSource {
+  NAUKRI
+  LINKEDIN
+  INDEED
+  SEEDED
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id             String    @id @default(cuid())
+  clerkId        String    @unique
+  name           String
+  email          String    @unique
+  background     String?
+  primaryTool    WATool?
+  targetLevel    Level     @default(L1)
+  readinessScore Json      @default("{}")
+  onboardingDone Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sessions  InterviewSession[]
+  alerts    JobAlert[]
+  savedJobs SavedJob[]
+  progress  TopicProgress[]
+  answers   Answer[]
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  title       String
+  company     String
+  location    String    @default("Hyderabad")
+  tool        WATool
+  level       Level
+  salaryMin   Int?
+  salaryMax   Int?
+  shift       String?
+  jdText      String    @db.Text
+  applyUrl    String
+  source      JobSource
+  hash        String    @unique
+  glassdoorQs String[]
+  postedAt    DateTime
+  createdAt   DateTime  @default(now())
+  isActive    Boolean   @default(true)
+
+  sessions InterviewSession[]
+  savedBy  SavedJob[]
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
+
+model InterviewSession {
+  id        String        @id @default(cuid())
+  userId    String
+  tool      WATool
+  level     Level
+  jobId     String?
+  avgScore  Float?
+  status    SessionStatus @default(IN_PROGRESS)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job     Job?     @relation(fields: [jobId], references: [id])
+  answers Answer[]
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  question  String   @db.Text
+  qSource   String
+  answer    String   @db.Text
+  score     Float
+  feedback  Json
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JobAlert {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  tools       WATool[]
+  location    String   @default("Hyderabad")
+  minMatch    Int      @default(50)
+  emailAlerts Boolean  @default(true)
+  pushAlerts  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  tool      WATool
+  level     Level
+  text      String   @db.Text
+  source    String
+  tags      String[]
+  createdAt DateTime @default(now())
+}
+
+model Topic {
+  id          String  @id @default(cuid())
+  tool        WATool
+  order       Int
+  title       String
+  description String
+  content     Json
+  hasLab      Boolean @default(false)
+  labType     String?
+  quizGate    Int     @default(70)
+
+  progress TopicProgress[]
+}
+
+model TopicProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  topicId     String
+  completed   Boolean   @default(false)
+  quizScore   Int?
+  labOutput   String?   @db.Text
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id])
+
+  @@unique([userId, topicId])
+}
