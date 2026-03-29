@@ -90,7 +90,7 @@ function InterviewContent() {
       } else {
         setStartError("Unexpected response from server. Try again.");
       }
-    } catch (e) {
+    } catch {
       setStartError("Network error. Is the server running?");
     }
     setLoading(false);
